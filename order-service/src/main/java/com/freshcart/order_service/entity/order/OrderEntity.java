@@ -37,6 +37,8 @@ public class OrderEntity extends BaseEntity {
 
     private BigDecimal totalPrice;
 
+    @Version
+    private Integer version;
 
     public OrderEntity() {
     }
@@ -47,6 +49,7 @@ public class OrderEntity extends BaseEntity {
         this.orderStatus = orderStatus;
         this.totalPrice = totalPrice;
     }
+
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.PERSIST)
     private List<OrderItemEntity> orderItems;

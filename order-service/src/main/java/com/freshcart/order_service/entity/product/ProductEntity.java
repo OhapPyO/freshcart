@@ -2,10 +2,10 @@ package com.freshcart.order_service.entity.product;
 
 import com.freshcart.order_service.entity.BaseEntity;
 import com.freshcart.order_service.entity.order.OrderItemEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,10 +20,14 @@ public class ProductEntity extends BaseEntity {
 
     private String name;
 
+    // product number in store
     private int stock;
 
     // it is related to price that is in the store and might be change over time
     private BigDecimal price;
+
+    @Version
+    private Long version;
 
     public ProductEntity() {
     }
