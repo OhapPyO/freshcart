@@ -1,5 +1,6 @@
 package com.freshcart.order_service.entity.user;
 
+import com.freshcart.order_service.data.request.RegisterRequest;
 import com.freshcart.order_service.entity.BaseEntity;
 import com.freshcart.order_service.entity.order.OrderEntity;
 import jakarta.persistence.*;
@@ -30,5 +31,14 @@ public class UserEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "user")
     private List<OrderEntity> userOrderEntities;
+
+    public UserEntity() {
+
+    }
+    public UserEntity(RegisterRequest req) {
+        this.firstName = req.getFirstName();
+        this.lastName = req.getLastName();
+        this.email = req.getEmail();
+    }
 
 }

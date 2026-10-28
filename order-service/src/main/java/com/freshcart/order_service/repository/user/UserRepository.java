@@ -10,4 +10,5 @@ import java.util.List;
 public interface UserRepository extends JpaRepository<UserEntity,Long> {
 
      UserEntity findFirstByIdAndDeletedIsFalse(long userId);
+     UserEntity findFirstByEmailAndDeletedIsFalse(String email);
 }
