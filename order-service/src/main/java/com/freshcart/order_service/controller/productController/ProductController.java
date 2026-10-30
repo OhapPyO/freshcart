@@ -1,5 +1,6 @@
 package com.freshcart.order_service.controller.productController;
 
+import com.freshcart.order_service.data.request.ProductRequest;
 import com.freshcart.order_service.data.response.DeliverySlotResponse;
 import com.freshcart.order_service.data.response.ProductResponse;
 import com.freshcart.order_service.service.product.ProductService;
@@ -25,12 +26,16 @@ public class ProductController {
         return productService.getProductById(id);
     }
     @GetMapping
-    public List<ProductResponse> getProductList(){
+    public List<ProductResponse> getProductList(
+    ){
         return productService.getProductList();
     }
 
     @PostMapping
-    public void saveProduct(){
-        //TODO Save Service
+    public void saveProduct(
+            @RequestBody ProductRequest productRequest
+
+    ){
+        productService.saveProduct(productRequest);
     }
 }

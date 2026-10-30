@@ -1,5 +1,6 @@
 package com.freshcart.order_service.service.product;
 
+import com.freshcart.order_service.data.request.ProductRequest;
 import com.freshcart.order_service.data.response.DeliverySlotResponse;
 import com.freshcart.order_service.data.response.ProductResponse;
 import com.freshcart.order_service.entity.delivery.DeliverySlotEntity;
@@ -38,5 +39,24 @@ public class ProductService {
                 .map(
                         m -> new ProductResponse(m.getId(), m.getName(), m.getStock(), m.getPrice(), m.getCreationDate())
                 ).toList();
+    }
+
+    public void saveProduct(ProductRequest request) {
+        if (request.getName().isEmpty()) {
+            throw new ValidationException("name is empty");
+        }
+        if (request.getStock() == 0) {
+            throw new ValidationException("stock is empty");
+        }
+        if (request.getPrice().intValue() <= 0) {
+            throw new ValidationException("price is empty");
+        }
+        ProductEntity product = new ProductEntity();
+        product.setName(request.getName());
+        product.setStock(request.getStock());
+        product.setPrice(request.getPrice());
+
+        productRepository.save(product);
+
     }
 }

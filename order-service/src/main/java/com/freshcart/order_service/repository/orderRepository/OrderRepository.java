@@ -14,28 +14,21 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
-    OrderEntity findFirstByIdAndDeletedIsFalse(long orderId);
+    OrderEntity findFirstByIdAndUserEmailAndDeletedIsFalse(long orderId, String email);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    OrderEntity findFirstByIdAndDeletedIsFalseAndOrderStatusNotIn(long orderId, OrderStatus[] collection);
-
-    List<OrderEntity> findAllBySlot_IdAndDeletedIsFalse(long slotId);
-
-    @Query("""
-            select distinct o
-            from OrderEntity o
-            join fetch o.slot
-            join fetch o.user
-            left join fetch o.orderItems item
-            left join fetch item.product
-            where o.deleted = false
-            """)
-    List<OrderEntity> findAllByDeletedIsFalse();
+    OrderEntity findFirstByIdAndUserEmailAndDeletedIsFalseAndOrderStatusNotIn(long orderId, String userEmail, OrderStatus[] collection);
 
     @Query("SELECT COUNT(o) FROM OrderEntity o " +
             "WHERE o.slot.id = :slotId AND " +
             "  o.orderStatus != :cancelled AND o.deleted = false ")
     long findActiveOrders(@Param("slotId") long slotId,
                           @Param("cancelled") OrderStatus cancelled
+    );
+
+    @Query("SELECT COUNT(o) FROM OrderEntity o " +
+            "WHERE o.user.email = :email AND " +
+            " o.deleted = false ")
+    List<OrderEntity> findAllUserOrders(@Param("email") String email
     );
 }

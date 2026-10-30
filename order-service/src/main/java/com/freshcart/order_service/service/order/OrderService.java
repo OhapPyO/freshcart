@@ -42,14 +42,14 @@ public class OrderService {
 
     //<editor-fold desc="Create Order">
     @Transactional
-    public OrderResponse createOrder(OrderRequest request) {
+    public OrderResponse createOrder(OrderRequest request,String email) {
 
         // IF REQUEST IS NULL OR THERE IS NULL OBJECT OR DUPLICATE PRODUCT -> ERROR
         checkDuplicateProductInorder(request);
 
         // user = userRepository.findFirstByIdAndDeletedIsFalse(sessionHolder.userId)
-        UserEntity fakeUser = userRepository.findFirstByIdAndDeletedIsFalse(1);
-        if (fakeUser == null) {
+        UserEntity user = userRepository.findFirstByEmailAndDeletedIsFalse(email);
+        if (user == null) {
             throw new ResourceNotFoundException("User not found");
         }
 
@@ -77,7 +77,7 @@ public class OrderService {
 
         order.setSlot(orderSlot);
         order.setOrderStatus(OrderStatus.ORDER_APPROVED);
-        order.setUser(fakeUser);
+        order.setUser(user);
         order.setTotalPrice(totalPrice);
         order.setOrderItems(orderItems);
 
@@ -199,12 +199,10 @@ public class OrderService {
     //<editor-fold desc="Get Order">
 
     @Transactional(readOnly = true)
-    public OrderResponse getOrder(long id) {
+    public OrderResponse getOrder(long id, String email) {
         OrderEntity order = id == 0 ? null
-                : orderRepository.findFirstByIdAndDeletedIsFalse(id);
-        if (order == null) {
-            throw new ResourceNotFoundException("Order not found");
-        }
+                : orderRepository.findFirstByIdAndUserEmailAndDeletedIsFalse(id,email);
+
         return new OrderResponse(id,
                 new IdName(order.getUser().getId(), order.getUser().getLastName()),
                 new IdName(order.getSlot().getId(), order.getSlot().getStartTime().toString() + " - " + order.getSlot().getEndTime().toString()),
@@ -217,8 +215,8 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getOrderList() {
-        List<OrderEntity> orders = orderRepository.findAllByDeletedIsFalse();
+    public List<OrderResponse> getOrderList(String email) {
+        List<OrderEntity> orders = orderRepository.findAllUserOrders(email);
         if (orders == null || orders.size() == 0) {
             return new ArrayList<>();
         }
@@ -240,15 +238,19 @@ public class OrderService {
 
     //<editor-fold desc="Cancel Order">
     @Transactional
-    public void deleteOrder(long orderId) {
+    public void deleteOrder(long orderId,String email) {
         OrderEntity order = orderRepository.
-                findFirstByIdAndDeletedIsFalseAndOrderStatusNotIn
+                findFirstByIdAndUserEmailAndDeletedIsFalseAndOrderStatusNotIn
                         (orderId,
+                                email,
                                 new OrderStatus[]{OrderStatus.ON_THE_WAY,
                                         OrderStatus.DELIVERED,
                                         OrderStatus.CANCELLED});
         if (order == null) {
             throw new ResourceNotFoundException("Order not found");
+        }
+        if (order.getSlot().getStartTime().isBefore(LocalDateTime.now())) {
+            throw new CustomException("You can  not cancel, because delivery already started");
         }
         order.setOrderStatus(OrderStatus.CANCELLED);
 

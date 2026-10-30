@@ -20,6 +20,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
@@ -35,12 +37,13 @@ class WebSecurityConfig {
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).authorizeHttpRequests(
-                        auth -> auth.requestMatchers("/auth/login/**", "/error").permitAll().
-                                requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        auth -> auth.requestMatchers("/auth/login/**", "/error").permitAll()
+                                .requestMatchers(HttpMethod.POST,"/product").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                                 .anyRequest()
                                 .authenticated())
-                .httpBasic(Customizer.withDefaults())
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
+                .oauth2ResourceServer((oauth2)
+                        -> oauth2.jwt(Customizer.withDefaults())
                 );
         return http.build();
     }
@@ -70,7 +73,15 @@ class WebSecurityConfig {
         return new SecretKeySpec(bt, "HmacSHA256");
     }
 
-
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
+        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("roles");
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
+    }
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
