@@ -7,23 +7,35 @@ import com.freshcart.order_service.exception.CustomException;
 import com.freshcart.order_service.exception.ResourceNotFoundException;
 import com.freshcart.order_service.repository.user.UserRepository;
 import jakarta.validation.Valid;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
 
+import javax.management.relation.Role;
+import java.time.Instant;
+import java.util.List;
+import java.util.stream.Stream;
+
 @Service
-public class LoginService  {
+public class LoginService {
 
     @Autowired
     UserRepository userRepository;
     @Autowired
     PasswordEncoder passwordEncoder;
-   @Autowired
-   AuthenticationManager authenticationManager;
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    JwtEncoder jwtEncoder;
 
 
     public void register(@Valid RegisterRequest req) {
@@ -51,16 +63,17 @@ public class LoginService  {
         }
     }
 
-    public void login(@Valid LoginRequest request) {
+    public String login(@Valid LoginRequest request) {
 
-        if (request.getEmail() == null || request.getEmail().isEmpty()) {
-            throw new CustomException("email is not valid");
-        }
-        if (request.getPassword() == null || request.getPassword().isEmpty()) {
-            throw new CustomException("password is not valid");
-        }
         Authentication authentication = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
         Authentication auth = authenticationManager.authenticate(authentication);
+        List<@Nullable String> roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+        JwtClaimsSet claims = JwtClaimsSet.builder().subject(auth.getName()).issuedAt(
+                Instant.now()
+        ).expiresAt(Instant.now().plusSeconds(2000L)).claim("roles",roles).build();
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 
 
     }

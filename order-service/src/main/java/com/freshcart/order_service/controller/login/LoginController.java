@@ -8,6 +8,7 @@ import com.freshcart.order_service.service.order.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,8 +34,8 @@ public class LoginController {
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest login) {
-        loginService.login(login);
-        return ResponseEntity.status(200).body("User logged successfully");
+        String jwt = loginService.login(login);
+        return ResponseEntity.status(200).body(jwt);
     }
 
 
