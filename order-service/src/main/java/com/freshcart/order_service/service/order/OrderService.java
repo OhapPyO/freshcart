@@ -18,6 +18,7 @@ import com.freshcart.order_service.repository.productRepository.ProductRepositor
 import com.freshcart.order_service.repository.slotRepository.DeliverySlotRepository;
 import com.freshcart.order_service.repository.user.UserRepository;
 import jakarta.validation.ValidationException;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,17 +29,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
-    @Autowired
-    private ProductRepository productRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private DeliverySlotRepository deliverySlotRepository;
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final DeliverySlotRepository deliverySlotRepository;
 
     //<editor-fold desc="Create Order">
     @Transactional
