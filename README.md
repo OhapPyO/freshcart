@@ -4,6 +4,58 @@ A grocery-delivery backend in the style of Picnic. Customers browse products, pi
 
 Work in progress: a learning project, built week by week.
 
+## Architecture
+
+Solid boxes work today. Dashed boxes are planned.
+
+```mermaid
+flowchart LR
+    C[Customer / Admin] -->|HTTPS + JWT| O
+
+    subgraph O[order-service · Spring Boot]
+        direction TB
+        SEC[Security: JWT login, roles] --> API[REST API: products, slots, orders]
+        API --> RULES[Order rules: slot lock, stock @Version, all-or-nothing]
+    end
+
+    RULES --> DB[(PostgreSQL · Flyway)]
+
+    RULES -.->|order-placed / order-cancelled| K{{Kafka}}
+    K -.-> W[warehouse-service: picking lists]
+    RULES -.->|status messages| R{{RabbitMQ + dead-letter queue}}
+    R -.-> N[notification-service]
+    RULES -.-> AI[AI replacement search: pgvector, behind circuit breaker]
+    WEB[React page] -.-> O
+    O -.-> M[Prometheus + Grafana]
+    REP[Python weekly report] -.-> DB
+
+    classDef planned stroke-dasharray: 5 5;
+    class K,W,R,N,AI,WEB,M,REP planned;
+```
+
+### Placing an order
+
+```mermaid
+sequenceDiagram
+    participant U as Customer
+    participant S as Security filter
+    participant OS as OrderService
+    participant DB as PostgreSQL
+    U->>S: POST /order + Bearer token
+    S->>S: Check signature and expiry
+    S->>OS: User email from token
+    OS->>DB: Lock slot row (SELECT ... FOR UPDATE)
+    OS->>DB: Count non-cancelled orders in slot
+    alt Slot full
+        OS-->>U: 409 Slot is Full
+    else Room left
+        OS->>DB: Lower stock (checked with @Version)
+        OS->>DB: Save order and items
+        OS-->>U: 201 Order created
+    end
+    Note over OS,DB: One transaction: any failure rolls everything back
+```
+
 ## What works now
 
 - **Products, delivery slots and orders** through a REST API (`order-service`, Spring Boot, Java 21, PostgreSQL).
