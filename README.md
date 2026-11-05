@@ -1,80 +1,93 @@
 # FreshCart
 
-A grocery-delivery backend in the style of Picnic. Customers browse products, pick a delivery slot and place an order. The system checks stock and slot capacity under concurrent orders, lowers stock, and lets customers cancel before the van leaves.
+Grocery-delivery backend in the style of Picnic.
 
-Work in progress: a learning project, built week by week.
+Customers browse products, book a delivery slot and place an order. FreshCart makes sure a slot is never overbooked and stock never goes wrong, even when many people order at the same moment. Customers can cancel until the van leaves.
+
+> Learning project, built week by week. The parts marked *planned* are not built yet.
+
+## What it does
+
+1. A customer registers and logs in, and gets a signed JWT token.
+2. The customer picks products and a delivery slot and places an order.
+3. The slot row is locked while existing orders are counted, so two orders can never take the last place at the same time.
+4. Stock is lowered for every item. If another order changed the same product first, the order fails instead of selling stock that isn't there.
+5. The whole order is one transaction: if any item fails, nothing is saved.
+6. The customer can see and cancel only their own orders, and only before the slot starts. Cancelled stock goes back.
+
+| Role | What they can do |
+|---|---|
+| Customer | Browse products, place, view and cancel own orders |
+| Admin | Everything a customer can, plus add products |
 
 ## Architecture
 
-Solid boxes work today. Dashed boxes are planned.
+```
+customer ──HTTPS + JWT──► order-service (Spring Boot)
+                            ├─ security: JWT login, roles CUSTOMER / ADMIN
+                            ├─ REST API: products, slots, orders
+                            ├─ rules: slot lock (pessimistic), stock @Version (optimistic), @Transactional
+                            └─ PostgreSQL, schema by Flyway
 
-```mermaid
-flowchart LR
-    C[Customer / Admin] -->|HTTPS + JWT| O
-
-    subgraph O[order-service · Spring Boot]
-        direction TB
-        SEC[Security: JWT login, roles] --> API[REST API: products, slots, orders]
-        API --> RULES[Order rules: slot lock, stock @Version, all-or-nothing]
-    end
-
-    RULES --> DB[(PostgreSQL · Flyway)]
-
-    RULES -.->|order-placed / order-cancelled| K{{Kafka}}
-    K -.-> W[warehouse-service: picking lists]
-    RULES -.->|status messages| R{{RabbitMQ + dead-letter queue}}
-    R -.-> N[notification-service]
-    RULES -.-> AI[AI replacement search: pgvector, behind circuit breaker]
-    WEB[React page] -.-> O
-    O -.-> M[Prometheus + Grafana]
-    REP[Python weekly report] -.-> DB
-
-    classDef planned stroke-dasharray: 5 5;
-    class K,W,R,N,AI,WEB,M,REP planned;
+planned:
+  order-service ──Kafka "order-placed" / "order-cancelled"──► warehouse-service: picking lists
+  order-service ──RabbitMQ + dead-letter queue──► notification-service: "on the way", "delivered"
+  Spring AI + pgvector: replacement for out-of-stock items, behind a circuit breaker
+  React page · Python weekly report · Prometheus + Grafana · Kubernetes
 ```
 
-### Placing an order
+## Tech stack
 
-```mermaid
-sequenceDiagram
-    participant U as Customer
-    participant S as Security filter
-    participant OS as OrderService
-    participant DB as PostgreSQL
-    U->>S: POST /order + Bearer token
-    S->>S: Check signature and expiry
-    S->>OS: User email from token
-    OS->>DB: Lock slot row (SELECT ... FOR UPDATE)
-    OS->>DB: Count non-cancelled orders in slot
-    alt Slot full
-        OS-->>U: 409 Slot is Full
-    else Room left
-        OS->>DB: Lower stock (checked with @Version)
-        OS->>DB: Save order and items
-        OS-->>U: 201 Order created
-    end
-    Note over OS,DB: One transaction: any failure rolls everything back
-```
+| Area | Technology |
+|---|---|
+| Language and framework | Java 21, Spring Boot 4 |
+| Data | PostgreSQL, Hibernate, Flyway migrations |
+| Security | Spring Security, JWT (HS256), BCrypt |
+| Concurrency | Pessimistic lock on slots, optimistic locking on stock, transactions |
+| Testing | API test script (8 cases incl. concurrency); JUnit 5, Mockito, Testcontainers *planned* |
+| Delivery | Docker Compose; GitHub Actions *planned* |
+| Messaging | Kafka, RabbitMQ *planned* |
 
-## What works now
+## Services
 
-- **Products, delivery slots and orders** through a REST API (`order-service`, Spring Boot, Java 21, PostgreSQL).
-- **Slot capacity under load.** The slot row is locked (pessimistic lock) while orders are counted, so a slot is never overbooked. Tested with 10 orders at once on a slot with 5 places: exactly 5 succeed.
-- **Correct stock.** Products use optimistic locking (`@Version`), and every order is all-or-nothing (`@Transactional`). If one item is out of stock, nothing in the order is saved.
-- **Login with JWT.** Register, log in, get a signed token. Roles: `CUSTOMER` and `ADMIN`; only admins add products. Passwords are hashed with BCrypt.
-- **Ownership checks.** Customers only see and cancel their own orders.
-- **Schema with Flyway.** Tables change only through migration files; Hibernate only validates.
+| Service | Responsibility | Status |
+|---|---|---|
+| order-service | Users, login, products, delivery slots, orders, stock | Working |
+| warehouse-service | Picking lists from Kafka events, low-stock alerts | Planned |
+| notification-service | Order status messages through RabbitMQ, retries, dead-letter queue | Planned |
 
 ## Run it
 
-You need Docker and Java 21.
+Requirements: Docker and Java 21.
 
-1. Start PostgreSQL: `docker compose up -d`
-2. Set an environment variable `JWT_SECRET` to a random Base64 key of at least 32 bytes: `openssl rand -base64 32`
-3. Start the app from `order-service`: `./mvnw spring-boot:run`
-4. Load test data and run the 8 API checks: `bash api-test.sh`
+```bash
+docker compose up -d
+```
 
-`api-test.sh` empties the database and loads `data.sql` first. The seeded users are `admin@freshcart.test`, `customer1@freshcart.test` and `customer2@freshcart.test`.
+Set the JWT key as an environment variable (any random Base64 value of at least 32 bytes):
+
+```bash
+export JWT_SECRET=$(openssl rand -base64 32)
+```
+
+Start the app from `order-service`:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Load test data and run the 8 API checks. This empties the database first:
+
+```bash
+bash api-test.sh
+```
+
+Seeded users: `admin@freshcart.test`, `customer1@freshcart.test`, `customer2@freshcart.test`. The password is in `api-test.sh`.
+
+| What | Where |
+|---|---|
+| API | http://localhost:8080 |
+| PostgreSQL | localhost:5432, database `freshcart` |
 
 ## API
 
@@ -88,8 +101,34 @@ You need Docker and Java 21.
 | GET | `/order/list`, `/order/{id}` | Owner |
 | POST | `/order/{id}/cancel` | Owner, before the slot starts |
 
-Send the token as `Authorization: Bearer <token>`.
+Example:
 
-## Next
+```bash
+curl -X POST http://localhost:8080/order \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"slot": 1, "orderItems": [{"quantity": 2, "product": 1}]}'
+```
 
-Unit and integration tests (JUnit 5, Mockito, Testcontainers), Docker image and GitHub Actions, then Kafka events to a warehouse service and RabbitMQ notifications.
+## Project structure
+
+```
+freshcart/
+├── order-service/           Spring Boot: users, login, products, slots, orders
+│   └── src/main/resources/
+│       ├── db/migration/    Flyway migrations
+│       └── data.sql         Test data
+├── api-test.sh              8 API checks incl. 10 concurrent orders
+└── docker-compose.yml       PostgreSQL
+```
+
+## Key design decisions
+
+- **Pessimistic lock on the slot.** Capacity depends on counting other rows, and the slot row itself never changes when an order is added, so `@Version` on the slot would not notice. Locking the slot first makes orders for the same slot wait in line.
+- **Optimistic lock on the product.** Every order changes the stock value on the row itself, so `@Version` catches two orders from different slots buying the last item, without making unrelated orders wait.
+- **One transaction per order.** If the second item is out of stock, the first item's stock is not lowered.
+- **`>=` for capacity.** The count runs before the new order is saved, so a slot with max 5 and 5 orders is full.
+- **Delivered orders still take a place.** A slot is one van trip; only cancelled orders free a place.
+- **User from the token, never from the request body.** Ownership is checked in the database query, so other people's orders return 404.
+- **Flyway owns the schema.** Hibernate only validates (`ddl-auto=validate`).
+- **The JWT key is an environment variable**, never in git.
