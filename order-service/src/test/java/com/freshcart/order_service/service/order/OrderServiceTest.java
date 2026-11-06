@@ -149,8 +149,9 @@ public class OrderServiceTest {
         var ex = assertThrows(CustomException.class, () -> orderService.createOrder(orderRequest, email));
         assertEquals("Not enough products in stock", ex.getMessage());
         verify(orderRepository, never()).save(any());
-        assertEquals(1, product.getStock())
+        assertEquals(1, product.getStock());
     }
+
 
 
 }
