@@ -160,7 +160,7 @@ public class OrderService {
      * @param orderSlot
      */
     private void checkActiveOrderInSlotWithSlotAvailableOrderNumber(OrderRequest request, DeliverySlotEntity orderSlot) {
-        long activeOrdersInThisSlot = orderRepository.findActiveOrders(request.getSlot(), OrderStatus.CANCELLED);
+        long activeOrdersInThisSlot = orderRepository.findActiveOrdersCount(request.getSlot(), OrderStatus.CANCELLED);
 
         if (activeOrdersInThisSlot >= orderSlot.getMaxOrder()) {
             throw new CustomException("Slot is Full");

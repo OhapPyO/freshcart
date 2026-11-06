@@ -22,11 +22,11 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     @Query("SELECT COUNT(o) FROM OrderEntity o " +
             "WHERE o.slot.id = :slotId AND " +
             "  o.orderStatus != :cancelled AND o.deleted = false ")
-    long findActiveOrders(@Param("slotId") long slotId,
+    long findActiveOrdersCount(@Param("slotId") long slotId,
                           @Param("cancelled") OrderStatus cancelled
     );
 
-    @Query("SELECT COUNT(o) FROM OrderEntity o " +
+    @Query("SELECT o FROM OrderEntity o " +
             "WHERE o.user.email = :email AND " +
             " o.deleted = false ")
     List<OrderEntity> findAllUserOrders(@Param("email") String email
