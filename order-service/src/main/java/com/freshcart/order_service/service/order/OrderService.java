@@ -200,7 +200,9 @@ public class OrderService {
     public OrderResponse getOrder(long id, String email) {
         OrderEntity order = id == 0 ? null
                 : orderRepository.findFirstByIdAndUserEmailAndDeletedIsFalse(id,email);
-
+        if (order == null) {
+            throw new ResourceNotFoundException("No order found with id " + id);
+        }
         return new OrderResponse(id,
                 new IdName(order.getUser().getId(), order.getUser().getLastName()),
                 new IdName(order.getSlot().getId(), order.getSlot().getStartTime().toString() + " - " + order.getSlot().getEndTime().toString()),
