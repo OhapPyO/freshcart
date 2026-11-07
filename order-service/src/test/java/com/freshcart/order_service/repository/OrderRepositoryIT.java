@@ -1,6 +1,6 @@
 package com.freshcart.order_service.repository;
 
-import com.freshcart.order_service.TestcontainersConfigurationIT;
+import com.freshcart.order_service.TestcontainersConfiguration;
 import com.freshcart.order_service.entity.delivery.DeliverySlotEntity;
 import com.freshcart.order_service.entity.order.OrderEntity;
 import com.freshcart.order_service.entity.order.OrderStatus;
@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TestcontainersConfigurationIT.class)
-public class OrderRepositoryTest {
+@Import(TestcontainersConfiguration.class)
+public class OrderRepositoryIT {
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
