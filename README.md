@@ -44,8 +44,8 @@ planned:
 | Data | PostgreSQL, Hibernate, Flyway migrations |
 | Security | Spring Security, JWT (HS256), BCrypt |
 | Concurrency | Pessimistic lock on slots, optimistic locking on stock, transactions |
-| Testing | API test script (8 cases incl. concurrency); JUnit 5, Mockito, Testcontainers *planned* |
-| Delivery | Docker Compose; GitHub Actions *planned* |
+| Testing | JUnit 5 + Mockito (business rules), Testcontainers (repository and API security), API script (8 cases incl. concurrency) |
+| Delivery | Multi-stage Dockerfile, Docker Compose, GitHub Actions (`mvn verify` on every push) |
 | Messaging | Kafka, RabbitMQ *planned* |
 
 ## Services
@@ -58,28 +58,32 @@ planned:
 
 ## Run it
 
-Requirements: Docker and Java 21.
+Requirements: Docker.
 
-```bash
-docker compose up -d
+Create a `.env` file next to `docker-compose.yml` (it is git-ignored):
+
+```
+password=freshcart
+JWT_SECRET=<any random Base64 value of at least 32 bytes, e.g. from: openssl rand -base64 32>
 ```
 
-Set the JWT key as an environment variable (any random Base64 value of at least 32 bytes):
+Start PostgreSQL and the app:
 
 ```bash
-export JWT_SECRET=$(openssl rand -base64 32)
-```
-
-Start the app from `order-service`:
-
-```bash
-./mvnw spring-boot:run
+docker compose up --build
 ```
 
 Load test data and run the 8 API checks. This empties the database first:
 
 ```bash
 bash api-test.sh
+```
+
+Run the tests from `order-service`:
+
+```bash
+./mvnw test     # unit tests only, no Docker needed
+./mvnw verify   # also the *IT tests (Testcontainers, needs Docker)
 ```
 
 Seeded users: `admin@freshcart.test`, `customer1@freshcart.test`, `customer2@freshcart.test`. The password is in `api-test.sh`.
@@ -115,11 +119,13 @@ curl -X POST http://localhost:8080/order \
 ```
 freshcart/
 ├── order-service/           Spring Boot: users, login, products, slots, orders
-│   └── src/main/resources/
-│       ├── db/migration/    Flyway migrations
-│       └── data.sql         Test data
+│   ├── src/main/resources/
+│   │   ├── db/migration/    Flyway migrations
+│   │   └── data.sql         Test data
+│   └── Dockerfile           Multi-stage build: JDK builds the jar, JRE runs it
+├── .github/workflows/ci.yml mvn verify on every push and pull request
 ├── api-test.sh              8 API checks incl. 10 concurrent orders
-└── docker-compose.yml       PostgreSQL
+└── docker-compose.yml       PostgreSQL + order-service
 ```
 
 ## Key design decisions
@@ -131,4 +137,5 @@ freshcart/
 - **Delivered orders still take a place.** A slot is one van trip; only cancelled orders free a place.
 - **User from the token, never from the request body.** Ownership is checked in the database query, so other people's orders return 404.
 - **Flyway owns the schema.** Hibernate only validates (`ddl-auto=validate`).
-- **The JWT key is an environment variable**, never in git.
+- **The JWT key is an environment variable**, never in git. Locally it comes from a git-ignored `.env`.
+- **Unit tests and integration tests are split.** Unit tests (`*Test`) run in `mvn test` without Docker; Testcontainers tests (`*IT`) run in `mvn verify`, in CI on every push.
