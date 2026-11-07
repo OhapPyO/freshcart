@@ -1,9 +1,30 @@
 services:
+  order-service:
+     build:
+      context: ./order-service
+      dockerfile: Dockerfile
+
+     depends_on:
+        postgres:
+          condition: service_healthy
+
+     environment:
+        SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/freshcart
+        SPRING_DATASOURCE_USERNAME: freshcart
+        SPRING_DATASOURCE_PASSWORD: ${password}
+        JWT_SECRET: ${JWT_SECRET}
+     ports:
+       - "8080:8080"
   postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: freshcart
       POSTGRES_USER: freshcart
-      POSTGRES_PASSWORD: freshcart
+      POSTGRES_PASSWORD: ${password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U freshcart -d freshcart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"

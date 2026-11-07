@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @AutoConfigureMockMvc
-public class ProductApiTest {
+public class ProductApiIT {
     @Autowired
     MockMvc mvc;
 

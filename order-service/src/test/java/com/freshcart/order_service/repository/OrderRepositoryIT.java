@@ -3,9 +3,7 @@ package com.freshcart.order_service.repository;
 import com.freshcart.order_service.TestcontainersConfiguration;
 import com.freshcart.order_service.entity.delivery.DeliverySlotEntity;
 import com.freshcart.order_service.entity.order.OrderEntity;
-import com.freshcart.order_service.entity.order.OrderItemEntity;
 import com.freshcart.order_service.entity.order.OrderStatus;
-import com.freshcart.order_service.entity.product.ProductEntity;
 import com.freshcart.order_service.entity.user.UserEntity;
 import com.freshcart.order_service.repository.orderRepository.OrderRepository;
 import com.freshcart.order_service.repository.productRepository.ProductRepository;
@@ -17,19 +15,16 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.lang.NonNull;
-import org.springframework.util.Assert;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(TestcontainersConfiguration.class)
-public class OrderRepositoryTest {
+public class OrderRepositoryIT {
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
