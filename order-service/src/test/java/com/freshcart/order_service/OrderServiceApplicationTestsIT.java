@@ -7,8 +7,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
-class OrderServiceApplicationTests {
+@Import(TestcontainersConfigurationIT.class)
+class OrderServiceApplicationTestsIT {
 
 	@Test
 	void contextLoads() {

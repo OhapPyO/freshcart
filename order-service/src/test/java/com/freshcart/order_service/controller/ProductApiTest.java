@@ -1,7 +1,7 @@
 package com.freshcart.order_service.controller;
 
 
-import com.freshcart.order_service.TestcontainersConfiguration;
+import com.freshcart.order_service.TestcontainersConfigurationIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@Import(TestcontainersConfigurationIT.class)
 @AutoConfigureMockMvc
 public class ProductApiTest {
     @Autowired
